@@ -2,6 +2,10 @@ name: Versioning and push to Harbor
 
 on:
   workflow_call:
+    inputs:
+      dockerfile_name:
+        required: true
+        type: string
     secrets:
       HARBOR_IP:
         required: true
@@ -40,7 +44,7 @@ jobs:
           password: ${{ secrets.HARBOR_PASSWORD }} 
  
       - name: Build the Docker image
-        run: docker build . --file Dockerfile_PROD --tag harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:${{ steps.changelog.outputs.version }} --tag harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:latest
+        run: docker build . --file ${{ inputs.dockerfile_name }} --tag harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:${{ steps.changelog.outputs.version }} --tag harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:latest
 
       - name: Push the Docker image
         run: docker image push harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:${{ steps.changelog.outputs.version }}
