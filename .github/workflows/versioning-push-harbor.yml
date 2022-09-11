@@ -16,7 +16,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-    needs: [test]
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
