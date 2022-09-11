@@ -1,0 +1,50 @@
+name: Versioning and push to Harbor
+
+on:
+  workflow_call:
+    secrets:
+      HARBOR_IP:
+        required: true
+      HARBOR_USERNAME:
+        required: true
+      HARBOR_PASSWORD:
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    needs: [test]
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+        
+      - name: Conventional Changelog Action
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v3
+        with:
+          git-message: "chore(release): {version}"
+
+      - name: Add hosts to /etc/hosts
+        run: |
+          sudo echo "${{ secrets.HARBOR_IP }} harbor.trimdu.com" | sudo tee -a /etc/hosts
+          sudo echo '{"insecure-registries" : ["https://harbor.trimdu.com"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: harbor.trimdu.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }} 
+ 
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile_PROD --tag harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:${{ steps.changelog.outputs.version }} --tag harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:latest
+
+      - name: Push the Docker image
+        run: docker image push harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:${{ steps.changelog.outputs.version }}
+
+      - name: Push the Docker image
+        run: docker image push harbor.trimdu.com/trimdu/${{ github.event.repository.name }}:latest
